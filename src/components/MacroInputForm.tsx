@@ -1,102 +1,137 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
-  Button,
+  VStack,
   FormControl,
   FormLabel,
+  Button,
+  HStack,
   NumberInput,
   NumberInputField,
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
-  VStack,
-  Textarea,
-  Heading,
-  FormErrorMessage,
 } from '@chakra-ui/react';
-import { useForm } from 'react-hook-form';
+import { FaAppleAlt, FaDrumstickBite, FaBreadSlice } from 'react-icons/fa';
 
-interface MacroInputFormProps {
-  onSubmit: (data: any) => void;
-}
-
-interface FormData {
+interface MacroInput {
   protein: number;
   carbs: number;
   fats: number;
-  preferences: string;
+  days: number;
+  preferences: string[];
+  restrictions: string[];
 }
 
-const MacroInputForm: React.FC<MacroInputFormProps> = ({ onSubmit }) => {
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
+interface MacroInputFormProps {
+  onSubmit: (data: MacroInput) => void;
+  isLoading: boolean;
+}
 
-  useEffect(() => {
-    console.log('MacroInputForm component mounted');
-  }, []);
+export const MacroInputForm = ({ onSubmit, isLoading }: MacroInputFormProps) => {
+  const [protein, setProtein] = useState(150);
+  const [carbs, setCarbs] = useState(200);
+  const [fats, setFats] = useState(70);
 
-  const onFormSubmit = (data: FormData) => {
-    console.log('Form data:', data);
-    onSubmit(data);
+  const handleSubmit = () => {
+    onSubmit({
+      protein,
+      carbs,
+      fats,
+      days: 7,
+      preferences: [],
+      restrictions: [],
+    });
   };
 
   return (
-    <Box p={6} borderWidth="1px" borderRadius="lg" boxShadow="md">
-      <Heading size="lg" mb={6}>Meal Planner Preferences</Heading>
-      <form onSubmit={handleSubmit(onFormSubmit)}>
-        <VStack spacing={4} align="stretch">
-          <FormControl isInvalid={!!errors.protein}>
-            <FormLabel>Protein (g)</FormLabel>
-            <NumberInput min={0} max={400} step={10}>
-              <NumberInputField {...register('protein', { required: 'Protein amount is required' })} />
+    <Box
+      bg="white"
+      p={6}
+      borderRadius="lg"
+      boxShadow="md"
+      border="1px"
+      borderColor="gray.200"
+    >
+      <VStack spacing={6} align="stretch">
+        <FormControl>
+          <FormLabel>Daily Protein Target (g)</FormLabel>
+          <HStack>
+            <NumberInput
+              value={protein}
+              onChange={(_, value) => setProtein(value)}
+              min={0}
+              max={500}
+              step={1}
+            >
+              <NumberInputField name="protein" required />
               <NumberInputStepper>
                 <NumberIncrementStepper />
                 <NumberDecrementStepper />
               </NumberInputStepper>
             </NumberInput>
-            <FormErrorMessage>{errors.protein?.message}</FormErrorMessage>
-          </FormControl>
+            <Box color="brand.500">
+              <FaDrumstickBite size={24} />
+            </Box>
+          </HStack>
+        </FormControl>
 
-          <FormControl isInvalid={!!errors.carbs}>
-            <FormLabel>Carbs (g)</FormLabel>
-            <NumberInput min={0} max={600} step={10}>
-              <NumberInputField {...register('carbs', { required: 'Carbs amount is required' })} />
+        <FormControl>
+          <FormLabel>Daily Carbs Target (g)</FormLabel>
+          <HStack>
+            <NumberInput
+              value={carbs}
+              onChange={(_, value) => setCarbs(value)}
+              min={0}
+              max={1000}
+              step={1}
+            >
+              <NumberInputField name="carbs" required />
               <NumberInputStepper>
                 <NumberIncrementStepper />
                 <NumberDecrementStepper />
               </NumberInputStepper>
             </NumberInput>
-            <FormErrorMessage>{errors.carbs?.message}</FormErrorMessage>
-          </FormControl>
+            <Box color="brand.500">
+              <FaBreadSlice size={24} />
+            </Box>
+          </HStack>
+        </FormControl>
 
-          <FormControl isInvalid={!!errors.fats}>
-            <FormLabel>Fats (g)</FormLabel>
-            <NumberInput min={0} max={200} step={10}>
-              <NumberInputField {...register('fats', { required: 'Fats amount is required' })} />
+        <FormControl>
+          <FormLabel>Daily Fats Target (g)</FormLabel>
+          <HStack>
+            <NumberInput
+              value={fats}
+              onChange={(_, value) => setFats(value)}
+              min={0}
+              max={200}
+              step={1}
+            >
+              <NumberInputField name="fats" required />
               <NumberInputStepper>
                 <NumberIncrementStepper />
                 <NumberDecrementStepper />
               </NumberInputStepper>
             </NumberInput>
-            <FormErrorMessage>{errors.fats?.message}</FormErrorMessage>
-          </FormControl>
+            <Box color="brand.500">
+              <FaAppleAlt size={24} />
+            </Box>
+          </HStack>
+        </FormControl>
 
-          <FormControl>
-            <FormLabel>Dietary Restrictions & Preferences</FormLabel>
-            <Textarea
-              {...register('preferences')}
-              placeholder="Enter any dietary restrictions or cuisine preferences (e.g., vegetarian, gluten-free, Mediterranean cuisine)"
-              size="md"
-              rows={4}
-            />
-          </FormControl>
-
-          <Button type="submit" colorScheme="blue" size="lg">
-            Generate Meal Plan
-          </Button>
-        </VStack>
-      </form>
+        <Button
+          colorScheme="brand"
+          size="lg"
+          onClick={handleSubmit}
+          isLoading={isLoading}
+          mt={4}
+        >
+          Generate Meal Plan
+        </Button>
+      </VStack>
     </Box>
   );
 };
 
-export default MacroInputForm; 
+export default MacroInputForm;
