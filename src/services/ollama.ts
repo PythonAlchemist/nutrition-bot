@@ -492,15 +492,14 @@ export const generateMealPlan = async (
   input: MacroInput
 ): Promise<MealPlanResponse> => {
   try {
-    const prompt = `Create a detailed meal plan for a week (Monday through Sunday) that meets these nutritional goals:
-    - Calories: ${input.calorieTarget} per day
-    - Protein: ${input.protein}g per day
-    - Carbs: ${input.carbs}g per day
-    - Fats: ${input.fats}g per day
+    const prompt = `Create a meal plan for a week that meets:
+    Calories: ${input.calorieTarget}/day
+    Protein: ${input.protein}g/day
+    Carbs: ${input.carbs}g/day
+    Fats: ${input.fats}g/day
+    Restrictions: ${input.dietaryRestrictions?.join(", ") || "None"}
 
-    Dietary restrictions: ${input.dietaryRestrictions?.join(", ") || "None"}
-
-    Return ONLY a JSON object with the following structure (no markdown formatting or additional text):
+    Return a JSON object with this exact structure (keep descriptions and instructions brief):
     {
       "days": [
         {
@@ -509,31 +508,20 @@ export const generateMealPlan = async (
             {
               "name": "Breakfast",
               "recipeName": "Recipe Name",
-              "ingredients": ["ingredient1", "ingredient2", ...],
+              "ingredients": ["1 cup ingredient1", "2 tbsp ingredient2"],
               "macros": {
-                "protein": number,
-                "carbs": number,
-                "fats": number,
-                "calories": number
+                "protein": 20,
+                "carbs": 30,
+                "fats": 10,
+                "calories": 300
               },
-              "description": "Brief description of the meal",
-              "instructions": "Step-by-step instructions"
-            },
-            // ... more meals for the day
+              "description": "Brief one-line description",
+              "instructions": "1. Step one\\n2. Step two"
+            }
           ]
-        },
-        // ... more days
+        }
       ]
-    }
-
-    Each meal should include:
-    1. A descriptive name and recipe name
-    2. Specific ingredients with measurements
-    3. Accurate macro calculations
-    4. A brief description
-    5. Clear step-by-step instructions
-
-    Ensure the total macros for each day meet the specified targets.`;
+    }`;
 
     const response = await axios.post<Response>(
       `${OLLAMA_API_URL}/api/generate`,
@@ -541,6 +529,10 @@ export const generateMealPlan = async (
         model: "gemma3:12b",
         prompt,
         stream: false,
+        options: {
+          temperature: 0.7,
+          max_tokens: 2048,
+        },
       }
     );
 
@@ -548,8 +540,8 @@ export const generateMealPlan = async (
       throw new Error("No response from Ollama");
     }
 
-    // Clean up the response by removing markdown formatting and any extra text
-    const cleanedResponse = response.data.response
+    // Clean up the response
+    let cleanedResponse = response.data.response
       .replace(/```json\n?/g, "") // Remove ```json
       .replace(/```\n?/g, "") // Remove closing ```
       .replace(/^\s*\[?\s*\{/, "{") // Ensure it starts with {
@@ -559,6 +551,12 @@ export const generateMealPlan = async (
       .replace(/,\s*}/g, "}") // Remove trailing commas before closing braces
       .replace(/,\s*]/g, "]") // Remove trailing commas before closing brackets
       .trim(); // Remove extra whitespace
+
+    // Find the last complete closing brace
+    const lastBraceIndex = cleanedResponse.lastIndexOf("}");
+    if (lastBraceIndex > 0) {
+      cleanedResponse = cleanedResponse.substring(0, lastBraceIndex + 1);
+    }
 
     try {
       // Parse the response and validate the structure
