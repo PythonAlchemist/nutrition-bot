@@ -1,14 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   VStack,
   Heading,
   Text,
-  List,
-  ListItem,
-  ListIcon,
   HStack,
-  Badge,
   useColorModeValue,
   Container,
   SimpleGrid,
@@ -17,7 +13,6 @@ import {
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
-  Spinner,
   Table,
   Thead,
   Tbody,
@@ -26,33 +21,14 @@ import {
   Td,
   Divider,
   Icon,
+  UnorderedList,
+  ListItem,
+  Spinner,
+  List,
+  ListIcon,
 } from '@chakra-ui/react';
-import { FaUtensils, FaCheck, FaAppleAlt, FaDrumstickBite, FaBreadSlice, FaFire } from 'react-icons/fa';
+import { FaUtensils, FaFire, FaBreadSlice, FaDrumstickBite, FaCheck } from 'react-icons/fa';
 import { fetchNutritionInfo } from '../services/nutrition';
-
-interface Meal {
-  name: string;
-  ingredients: string[];
-  macros: {
-    protein: number;
-    carbs: number;
-    fats: number;
-    calories: number;
-  };
-}
-
-interface DayPlan {
-  day: string;
-  meals: Meal[];
-}
-
-interface MealPlanResponse {
-  days: DayPlan[];
-}
-
-interface MealPlanDisplayProps {
-  mealPlan: MealPlanResponse;
-}
 
 interface NutritionInfo {
   calories: number;
@@ -71,14 +47,44 @@ interface NutritionInfo {
   potassium: number;
 }
 
+interface Meal {
+  name: string;
+  recipeName: string;
+  ingredients: string[];
+  macros: {
+    protein: number;
+    carbs: number;
+    fats: number;
+    calories: number;
+  };
+  description: string;
+  instructions: string;
+}
+
+interface DayPlan {
+  day: string;
+  meals: Meal[];
+}
+
+interface MealPlanResponse {
+  days: DayPlan[];
+}
+
+interface MealPlanDisplayProps {
+  mealPlan: MealPlanResponse;
+}
+
 const formatNumber = (value: number | undefined | null): string => {
   if (value === undefined || value === null || isNaN(value)) return '0';
   return Math.round(value).toString();
 };
 
-const NutritionInfoDisplay: React.FC<{ nutrition: NutritionInfo }> = ({ nutrition }) => {
+const NutritionInfoDisplay: React.FC<{ nutrition: NutritionInfo | Meal['macros'] }> = ({ nutrition }) => {
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
+
+  // Check if we're displaying full nutrition info or just macros
+  const isFullNutrition = 'saturatedFat' in nutrition;
 
   return (
     <Box
@@ -108,29 +114,34 @@ const NutritionInfoDisplay: React.FC<{ nutrition: NutritionInfo }> = ({ nutritio
             <Text fontWeight="bold">Total Fat</Text>
             <Text>{formatNumber(nutrition.fats)}g</Text>
           </HStack>
-          <Box pl={4}>
-            <HStack justify="space-between">
-              <Text>Saturated Fat</Text>
-              <Text>{formatNumber(nutrition.saturatedFat)}g</Text>
-            </HStack>
-            <HStack justify="space-between">
-              <Text>Trans Fat</Text>
-              <Text>{formatNumber(nutrition.transFat)}g</Text>
-            </HStack>
-          </Box>
+          {isFullNutrition && (
+            <Box pl={4}>
+              <HStack justify="space-between">
+                <Text>Saturated Fat</Text>
+                <Text>{formatNumber(nutrition.saturatedFat)}g</Text>
+              </HStack>
+              <HStack justify="space-between">
+                <Text>Trans Fat</Text>
+                <Text>{formatNumber(nutrition.transFat)}g</Text>
+              </HStack>
+            </Box>
+          )}
         </Box>
         
-        <Divider />
-        
-        <HStack justify="space-between">
-          <Text fontWeight="bold">Cholesterol</Text>
-          <Text>{formatNumber(nutrition.cholesterol)}mg</Text>
-        </HStack>
-        
-        <HStack justify="space-between">
-          <Text fontWeight="bold">Sodium</Text>
-          <Text>{formatNumber(nutrition.sodium)}mg</Text>
-        </HStack>
+        {isFullNutrition && (
+          <>
+            <Divider />
+            <HStack justify="space-between">
+              <Text fontWeight="bold">Cholesterol</Text>
+              <Text>{formatNumber(nutrition.cholesterol)}mg</Text>
+            </HStack>
+            
+            <HStack justify="space-between">
+              <Text fontWeight="bold">Sodium</Text>
+              <Text>{formatNumber(nutrition.sodium)}mg</Text>
+            </HStack>
+          </>
+        )}
         
         <Divider />
         
@@ -142,16 +153,18 @@ const NutritionInfoDisplay: React.FC<{ nutrition: NutritionInfo }> = ({ nutritio
             </HStack>
             <Text>{formatNumber(nutrition.carbs)}g</Text>
           </HStack>
-          <Box pl={4}>
-            <HStack justify="space-between">
-              <Text>Dietary Fiber</Text>
-              <Text>{formatNumber(nutrition.fiber)}g</Text>
-            </HStack>
-            <HStack justify="space-between">
-              <Text>Total Sugars</Text>
-              <Text>{formatNumber(nutrition.sugar)}g</Text>
-            </HStack>
-          </Box>
+          {isFullNutrition && (
+            <Box pl={4}>
+              <HStack justify="space-between">
+                <Text>Dietary Fiber</Text>
+                <Text>{formatNumber(nutrition.fiber)}g</Text>
+              </HStack>
+              <HStack justify="space-between">
+                <Text>Total Sugars</Text>
+                <Text>{formatNumber(nutrition.sugar)}g</Text>
+              </HStack>
+            </Box>
+          )}
         </Box>
         
         <Divider />
@@ -164,42 +177,59 @@ const NutritionInfoDisplay: React.FC<{ nutrition: NutritionInfo }> = ({ nutritio
           <Text>{formatNumber(nutrition.protein)}g</Text>
         </HStack>
         
-        <Divider />
-        
-        <SimpleGrid columns={2} spacing={4}>
-          <Box>
-            <HStack justify="space-between">
-              <Text>Vitamin D</Text>
-              <Text>{formatNumber(nutrition.vitaminD)}IU</Text>
-            </HStack>
-            <HStack justify="space-between">
-              <Text>Calcium</Text>
-              <Text>{formatNumber(nutrition.calcium)}mg</Text>
-            </HStack>
-          </Box>
-          <Box>
-            <HStack justify="space-between">
-              <Text>Iron</Text>
-              <Text>{formatNumber(nutrition.iron)}mg</Text>
-            </HStack>
-            <HStack justify="space-between">
-              <Text>Potassium</Text>
-              <Text>{formatNumber(nutrition.potassium)}mg</Text>
-            </HStack>
-          </Box>
-        </SimpleGrid>
+        {isFullNutrition && (
+          <>
+            <Divider />
+            <SimpleGrid columns={2} spacing={4}>
+              <Box>
+                <HStack justify="space-between">
+                  <Text>Vitamin D</Text>
+                  <Text>{formatNumber(nutrition.vitaminD)}IU</Text>
+                </HStack>
+                <HStack justify="space-between">
+                  <Text>Calcium</Text>
+                  <Text>{formatNumber(nutrition.calcium)}mg</Text>
+                </HStack>
+              </Box>
+              <Box>
+                <HStack justify="space-between">
+                  <Text>Iron</Text>
+                  <Text>{formatNumber(nutrition.iron)}mg</Text>
+                </HStack>
+                <HStack justify="space-between">
+                  <Text>Potassium</Text>
+                  <Text>{formatNumber(nutrition.potassium)}mg</Text>
+                </HStack>
+              </Box>
+            </SimpleGrid>
+          </>
+        )}
       </VStack>
     </Box>
   );
 };
 
-const calculateDailyTotals = (meals: Meal[]) => {
-  return meals.reduce((acc, meal) => ({
-    calories: acc.calories + meal.macros.calories,
-    protein: acc.protein + meal.macros.protein,
-    carbs: acc.carbs + meal.macros.carbs,
-    fats: acc.fats + meal.macros.fats,
-  }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+const calculateDailyTotals = (meals: Meal[], nutritionData: { [key: string]: NutritionInfo }) => {
+  return meals.reduce((acc, meal) => {
+    const mealTotals = meal.ingredients.every(ingredient => nutritionData[ingredient])
+      ? meal.ingredients.reduce((total, ingredient) => {
+          const nutrition = nutritionData[ingredient];
+          return {
+            calories: total.calories + nutrition.calories,
+            protein: total.protein + nutrition.protein,
+            carbs: total.carbs + nutrition.carbs,
+            fats: total.fats + nutrition.fats
+          };
+        }, { calories: 0, protein: 0, carbs: 0, fats: 0 })
+      : meal.macros;
+
+    return {
+      calories: acc.calories + mealTotals.calories,
+      protein: acc.protein + mealTotals.protein,
+      carbs: acc.carbs + mealTotals.carbs,
+      fats: acc.fats + mealTotals.fats,
+    };
+  }, { calories: 0, protein: 0, carbs: 0, fats: 0 });
 };
 
 const MealPlanDisplay: React.FC<MealPlanDisplayProps> = ({ mealPlan }) => {
@@ -210,71 +240,35 @@ const MealPlanDisplay: React.FC<MealPlanDisplayProps> = ({ mealPlan }) => {
   const headerBg = useColorModeValue('gray.50', 'gray.600');
   const totalBg = useColorModeValue('gray.100', 'gray.500');
 
-  const calculateMealTotals = (ingredients: string[]): NutritionInfo => {
-    return ingredients.reduce((acc, ingredient) => {
-      const nutrition = nutritionData[ingredient] || {
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fats: 0,
-        saturatedFat: 0,
-        transFat: 0,
-        cholesterol: 0,
-        sodium: 0,
-        fiber: 0,
-        sugar: 0,
-        vitaminD: 0,
-        calcium: 0,
-        iron: 0,
-        potassium: 0,
-      };
-      return {
-        calories: acc.calories + nutrition.calories,
-        protein: acc.protein + nutrition.protein,
-        carbs: acc.carbs + nutrition.carbs,
-        fats: acc.fats + nutrition.fats,
-        saturatedFat: acc.saturatedFat + nutrition.saturatedFat,
-        transFat: acc.transFat + nutrition.transFat,
-        cholesterol: acc.cholesterol + nutrition.cholesterol,
-        sodium: acc.sodium + nutrition.sodium,
-        fiber: acc.fiber + nutrition.fiber,
-        sugar: acc.sugar + nutrition.sugar,
-        vitaminD: acc.vitaminD + nutrition.vitaminD,
-        calcium: acc.calcium + nutrition.calcium,
-        iron: acc.iron + nutrition.iron,
-        potassium: acc.potassium + nutrition.potassium,
-      };
-    }, {
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fats: 0,
-      saturatedFat: 0,
-      transFat: 0,
-      cholesterol: 0,
-      sodium: 0,
-      fiber: 0,
-      sugar: 0,
-      vitaminD: 0,
-      calcium: 0,
-      iron: 0,
-      potassium: 0,
-    });
-  };
+  // Pre-fetch nutrition data for all ingredients when meal plan changes
+  useEffect(() => {
+    const fetchAllNutritionData = async () => {
+      const uniqueIngredients = new Set<string>();
+      mealPlan.days.forEach(day => {
+        day.meals.forEach(meal => {
+          meal.ingredients.forEach(ingredient => {
+            uniqueIngredients.add(ingredient);
+          });
+        });
+      });
 
-  const fetchIngredientNutrition = async (ingredient: string) => {
-    if (nutritionData[ingredient] || loadingIngredients[ingredient]) return;
+      // Fetch all ingredients in parallel
+      const promises = Array.from(uniqueIngredients)
+        .filter(ingredient => !nutritionData[ingredient])
+        .map(async (ingredient) => {
+          try {
+            const nutrition = await fetchNutritionInfo(ingredient);
+            setNutritionData(prev => ({ ...prev, [ingredient]: nutrition }));
+          } catch (error) {
+            console.error(`Error fetching nutrition for ${ingredient}:`, error);
+          }
+        });
 
-    setLoadingIngredients(prev => ({ ...prev, [ingredient]: true }));
-    try {
-      const nutrition = await fetchNutritionInfo(ingredient);
-      setNutritionData(prev => ({ ...prev, [ingredient]: nutrition }));
-    } catch (error) {
-      console.error(`Error fetching nutrition for ${ingredient}:`, error);
-    } finally {
-      setLoadingIngredients(prev => ({ ...prev, [ingredient]: false }));
-    }
-  };
+      await Promise.all(promises);
+    };
+
+    fetchAllNutritionData();
+  }, [mealPlan]);
 
   if (!mealPlan?.days) {
     return (
@@ -293,7 +287,7 @@ const MealPlanDisplay: React.FC<MealPlanDisplayProps> = ({ mealPlan }) => {
         <Heading size="xl" textAlign="center">Your Meal Plan</Heading>
         
         {mealPlan.days.map((day, dayIndex) => {
-          const dailyTotals = calculateDailyTotals(day.meals);
+          const dailyTotals = calculateDailyTotals(day.meals, nutritionData);
           
           return (
             <Box
@@ -320,15 +314,29 @@ const MealPlanDisplay: React.FC<MealPlanDisplayProps> = ({ mealPlan }) => {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {day.meals.map((meal, index) => (
-                    <Tr key={index} _hover={{ bg: 'gray.50' }}>
-                      <Td fontWeight="medium">{meal.name}</Td>
-                      <Td isNumeric>{meal.macros.calories}</Td>
-                      <Td isNumeric>{meal.macros.protein}g</Td>
-                      <Td isNumeric>{meal.macros.carbs}g</Td>
-                      <Td isNumeric>{meal.macros.fats}g</Td>
-                    </Tr>
-                  ))}
+                  {day.meals.map((meal, index) => {
+                    const mealTotals = meal.ingredients.every(ingredient => nutritionData[ingredient]) 
+                      ? meal.ingredients.reduce((total, ingredient) => {
+                          const nutrition = nutritionData[ingredient];
+                          return {
+                            calories: total.calories + nutrition.calories,
+                            protein: total.protein + nutrition.protein,
+                            carbs: total.carbs + nutrition.carbs,
+                            fats: total.fats + nutrition.fats
+                          };
+                        }, { calories: 0, protein: 0, carbs: 0, fats: 0 })
+                      : meal.macros;
+
+                    return (
+                      <Tr key={index} _hover={{ bg: 'gray.50' }}>
+                        <Td fontWeight="medium">{meal.name}</Td>
+                        <Td isNumeric>{mealTotals.calories}</Td>
+                        <Td isNumeric>{mealTotals.protein}g</Td>
+                        <Td isNumeric>{mealTotals.carbs}g</Td>
+                        <Td isNumeric>{mealTotals.fats}g</Td>
+                      </Tr>
+                    );
+                  })}
                   <Tr fontWeight="bold" bg={totalBg}>
                     <Td>Daily Total</Td>
                     <Td isNumeric>{dailyTotals.calories}</Td>
@@ -340,82 +348,124 @@ const MealPlanDisplay: React.FC<MealPlanDisplayProps> = ({ mealPlan }) => {
               </Table>
 
               <Accordion allowMultiple>
-                {day.meals.map((meal, index) => {
-                  const mealKey = `${meal.name}-${meal.ingredients.join(',')}`;
-                  const mealTotals = calculateMealTotals(meal.ingredients);
-                  
-                  return (
-                    <AccordionItem key={index} border="none">
-                      <AccordionButton
-                        bg={bgColor}
-                        borderWidth="1px"
-                        borderColor={borderColor}
-                        borderRadius="md"
-                        _hover={{ bg: 'gray.50' }}
-                      >
-                        <Box flex="1" textAlign="left">
-                          <HStack>
-                            <Icon as={FaUtensils} color="brand.500" />
-                            <Heading size="sm">{meal.name}</Heading>
-                            <Badge colorScheme="brand">
-                              {meal.macros.protein}P / {meal.macros.carbs}C / {meal.macros.fats}F
-                            </Badge>
-                          </HStack>
+                {day.meals.map((meal, index) => (
+                  <AccordionItem key={index} border="none">
+                    <AccordionButton
+                      bg={bgColor}
+                      borderWidth="1px"
+                      borderColor={borderColor}
+                      borderRadius="md"
+                      _hover={{ bg: 'gray.50' }}
+                    >
+                      <Box flex="1" textAlign="left">
+                        <HStack>
+                          <Icon as={FaUtensils} color="brand.500" />
+                          <Heading size="sm">{meal.name} - {meal.recipeName}</Heading>
+                        </HStack>
+                      </Box>
+                      <AccordionIcon />
+                    </AccordionButton>
+                    <AccordionPanel pb={4}>
+                      <VStack align="stretch" spacing={4}>
+                        <Box>
+                          <Text fontWeight="bold" mb={2}>Ingredients:</Text>
+                          <Accordion allowMultiple>
+                            {meal.ingredients.map((ingredient, ingredientIndex) => (
+                              <AccordionItem key={ingredientIndex} border="none" mb={1}>
+                                <AccordionButton
+                                  bg={bgColor}
+                                  borderWidth="1px"
+                                  borderColor={borderColor}
+                                  borderRadius="md"
+                                  _hover={{ bg: 'gray.50' }}
+                                  py={2}
+                                >
+                                  <Box flex="1" textAlign="left">
+                                    <Text>{ingredient}</Text>
+                                  </Box>
+                                  <AccordionIcon />
+                                </AccordionButton>
+                                <AccordionPanel pb={4}>
+                                  {loadingIngredients[ingredient] ? (
+                                    <Text fontSize="sm" color="gray.500">Loading nutrition info...</Text>
+                                  ) : (
+                                    nutritionData[ingredient] && (
+                                      <NutritionInfoDisplay nutrition={nutritionData[ingredient]} />
+                                    )
+                                  )}
+                                </AccordionPanel>
+                              </AccordionItem>
+                            ))}
+                          </Accordion>
                         </Box>
-                        <AccordionIcon />
-                      </AccordionButton>
-                      <AccordionPanel pb={4}>
-                        <VStack align="stretch" spacing={4}>
-                          <Box>
-                            <Text fontWeight="bold" mb={2}>Ingredients:</Text>
-                            <Accordion allowMultiple>
-                              {meal.ingredients.map((ingredient, ingredientIndex) => (
-                                <AccordionItem key={ingredientIndex} border="none">
-                                  <AccordionButton
-                                    onClick={() => fetchIngredientNutrition(ingredient)}
-                                    bg={bgColor}
-                                    borderWidth="1px"
-                                    borderColor={borderColor}
-                                    borderRadius="md"
-                                    _hover={{ bg: 'gray.50' }}
-                                  >
-                                    <Box flex="1" textAlign="left">
-                                      <HStack>
-                                        <List>
-                                          <ListItem>
-                                            <ListIcon as={FaCheck} color="brand.500" />
-                                            <Text>{ingredient}</Text>
-                                          </ListItem>
-                                        </List>
-                                      </HStack>
-                                    </Box>
-                                    <AccordionIcon />
-                                  </AccordionButton>
-                                  <AccordionPanel pb={4}>
-                                    {loadingIngredients[ingredient] ? (
-                                      <Text fontSize="sm" color="gray.500">Loading nutrition info...</Text>
-                                    ) : (
-                                      nutritionData[ingredient] && (
-                                        <NutritionInfoDisplay nutrition={nutritionData[ingredient]} />
-                                      )
-                                    )}
-                                  </AccordionPanel>
-                                </AccordionItem>
-                              ))}
-                            </Accordion>
-                          </Box>
-                          
-                          <Divider my={4} />
-                          
-                          <Box>
-                            <Text fontWeight="bold" mb={2}>Total Meal Nutrition:</Text>
-                            <NutritionInfoDisplay nutrition={mealTotals} />
-                          </Box>
-                        </VStack>
-                      </AccordionPanel>
-                    </AccordionItem>
-                  );
-                })}
+                        
+                        <Divider my={4} />
+                        
+                        <Box>
+                          <Text fontWeight="bold" mb={2}>Description:</Text>
+                          <Text>{meal.description}</Text>
+                        </Box>
+
+                        <Divider my={4} />
+
+                        <Box>
+                          <Text fontWeight="bold" mb={2}>Instructions:</Text>
+                          <UnorderedList spacing={2}>
+                            {meal.instructions.split('\n').map((instruction, index) => (
+                              <ListItem key={index}>{instruction}</ListItem>
+                            ))}
+                          </UnorderedList>
+                        </Box>
+                        
+                        <Divider my={4} />
+                        
+                        <Box>
+                          <Text fontWeight="bold" mb={2}>Total Meal Nutrition:</Text>
+                          {meal.ingredients.every(ingredient => nutritionData[ingredient]) ? (
+                            <NutritionInfoDisplay 
+                              nutrition={meal.ingredients.reduce((total, ingredient) => {
+                                const nutrition = nutritionData[ingredient];
+                                return {
+                                  calories: total.calories + nutrition.calories,
+                                  protein: total.protein + nutrition.protein,
+                                  carbs: total.carbs + nutrition.carbs,
+                                  fats: total.fats + nutrition.fats,
+                                  fiber: total.fiber + nutrition.fiber,
+                                  sugar: total.sugar + nutrition.sugar,
+                                  saturatedFat: total.saturatedFat + nutrition.saturatedFat,
+                                  transFat: total.transFat + nutrition.transFat,
+                                  cholesterol: total.cholesterol + nutrition.cholesterol,
+                                  sodium: total.sodium + nutrition.sodium,
+                                  vitaminD: total.vitaminD + nutrition.vitaminD,
+                                  calcium: total.calcium + nutrition.calcium,
+                                  iron: total.iron + nutrition.iron,
+                                  potassium: total.potassium + nutrition.potassium
+                                };
+                              }, {
+                                calories: 0,
+                                protein: 0,
+                                carbs: 0,
+                                fats: 0,
+                                fiber: 0,
+                                sugar: 0,
+                                saturatedFat: 0,
+                                transFat: 0,
+                                cholesterol: 0,
+                                sodium: 0,
+                                vitaminD: 0,
+                                calcium: 0,
+                                iron: 0,
+                                potassium: 0
+                              })}
+                            />
+                          ) : (
+                            <Text fontSize="sm" color="gray.500">Loading total nutrition...</Text>
+                          )}
+                        </Box>
+                      </VStack>
+                    </AccordionPanel>
+                  </AccordionItem>
+                ))}
               </Accordion>
             </Box>
           );

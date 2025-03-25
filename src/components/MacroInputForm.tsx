@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   VStack,
@@ -6,13 +6,11 @@ import {
   FormLabel,
   Button,
   HStack,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
+  Input,
+  Textarea,
+  Text,
 } from '@chakra-ui/react';
-import { FaAppleAlt, FaDrumstickBite, FaBreadSlice } from 'react-icons/fa';
+import { FaDrumstickBite, FaBreadSlice, FaFire, FaTint } from 'react-icons/fa';
 
 interface MacroInput {
   protein: number;
@@ -32,6 +30,11 @@ export const MacroInputForm = ({ onSubmit, isLoading }: MacroInputFormProps) => 
   const [protein, setProtein] = useState(150);
   const [carbs, setCarbs] = useState(200);
   const [fats, setFats] = useState(70);
+  const [preferences, setPreferences] = useState('');
+
+  const calories = useMemo(() => {
+    return (protein * 4) + (carbs * 4) + (fats * 9);
+  }, [protein, carbs, fats]);
 
   const handleSubmit = () => {
     onSubmit({
@@ -39,7 +42,7 @@ export const MacroInputForm = ({ onSubmit, isLoading }: MacroInputFormProps) => 
       carbs,
       fats,
       days: 7,
-      preferences: [],
+      preferences: [preferences.trim()],
       restrictions: [],
     });
   };
@@ -54,70 +57,90 @@ export const MacroInputForm = ({ onSubmit, isLoading }: MacroInputFormProps) => 
       borderColor="gray.200"
     >
       <VStack spacing={6} align="stretch">
-        <FormControl>
-          <FormLabel>Daily Protein Target (g)</FormLabel>
-          <HStack>
-            <NumberInput
-              value={protein}
-              onChange={(_, value) => setProtein(value)}
-              min={0}
-              max={500}
-              step={1}
-            >
-              <NumberInputField name="protein" required />
-              <NumberInputStepper>
-                <NumberIncrementStepper />
-                <NumberDecrementStepper />
-              </NumberInputStepper>
-            </NumberInput>
-            <Box color="brand.500">
-              <FaDrumstickBite size={24} />
-            </Box>
-          </HStack>
-        </FormControl>
+        <HStack spacing={4} align="flex-start">
+          <FormControl>
+            <FormLabel>Protein (g)</FormLabel>
+            <HStack>
+              <Input
+                type="number"
+                value={protein}
+                onChange={(e) => setProtein(Number(e.target.value))}
+                min={0}
+                max={500}
+                required
+                width="100px"
+              />
+              <Box color="brand.500">
+                <FaDrumstickBite size={24} />
+              </Box>
+            </HStack>
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Carbs (g)</FormLabel>
+            <HStack>
+              <Input
+                type="number"
+                value={carbs}
+                onChange={(e) => setCarbs(Number(e.target.value))}
+                min={0}
+                max={1000}
+                required
+                width="100px"
+              />
+              <Box color="brand.500">
+                <FaBreadSlice size={24} />
+              </Box>
+            </HStack>
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Fats (g)</FormLabel>
+            <HStack>
+              <Input
+                type="number"
+                value={fats}
+                onChange={(e) => setFats(Number(e.target.value))}
+                min={0}
+                max={200}
+                required
+                width="100px"
+              />
+              <Box color="brand.500">
+                <FaTint size={24} />
+              </Box>
+            </HStack>
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Calories</FormLabel>
+            <HStack>
+              <Box
+                bg="gray.50"
+                p={2}
+                borderRadius="md"
+                width="100px"
+                textAlign="center"
+              >
+                <Text fontSize="lg" fontWeight="bold" color="brand.500">
+                  {calories}
+                </Text>
+              </Box>
+              <Box color="brand.500">
+                <FaFire size={24} />
+              </Box>
+            </HStack>
+          </FormControl>
+        </HStack>
 
         <FormControl>
-          <FormLabel>Daily Carbs Target (g)</FormLabel>
-          <HStack>
-            <NumberInput
-              value={carbs}
-              onChange={(_, value) => setCarbs(value)}
-              min={0}
-              max={1000}
-              step={1}
-            >
-              <NumberInputField name="carbs" required />
-              <NumberInputStepper>
-                <NumberIncrementStepper />
-                <NumberDecrementStepper />
-              </NumberInputStepper>
-            </NumberInput>
-            <Box color="brand.500">
-              <FaBreadSlice size={24} />
-            </Box>
-          </HStack>
-        </FormControl>
-
-        <FormControl>
-          <FormLabel>Daily Fats Target (g)</FormLabel>
-          <HStack>
-            <NumberInput
-              value={fats}
-              onChange={(_, value) => setFats(value)}
-              min={0}
-              max={200}
-              step={1}
-            >
-              <NumberInputField name="fats" required />
-              <NumberInputStepper>
-                <NumberIncrementStepper />
-                <NumberDecrementStepper />
-              </NumberInputStepper>
-            </NumberInput>
-            <Box color="brand.500">
-              <FaAppleAlt size={24} />
-            </Box>
-          </HStack>
+          <FormLabel>Food Preferences</FormLabel>
+          <Textarea
+            value={preferences}
+            onChange={(e) => setPreferences(e.target.value)}
+            placeholder="Describe your food preferences, dietary restrictions, or any specific requirements (e.g., 'I prefer Mediterranean cuisine with lots of vegetables and lean proteins')"
+            rows={3}
+          />
         </FormControl>
 
         <Button
@@ -125,7 +148,9 @@ export const MacroInputForm = ({ onSubmit, isLoading }: MacroInputFormProps) => 
           size="lg"
           onClick={handleSubmit}
           isLoading={isLoading}
+          loadingText="Generating Meal Plan..."
           mt={4}
+          width="100%"
         >
           Generate Meal Plan
         </Button>

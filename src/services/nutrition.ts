@@ -223,30 +223,9 @@ const stubbedNutritionData: { [key: string]: NutritionInfo } = {
 export const fetchNutritionInfo = async (
   ingredient: string
 ): Promise<NutritionInfo> => {
-  try {
-    // Return stubbed data for testing
-    return (
-      stubbedNutritionData[ingredient] || {
-        calories: Math.floor(Math.random() * 200) + 100,
-        protein: Math.floor(Math.random() * 20) + 5,
-        carbs: Math.floor(Math.random() * 30) + 10,
-        fats: Math.floor(Math.random() * 10) + 2,
-        saturatedFat: Math.floor(Math.random() * 5) + 1,
-        transFat: Math.floor(Math.random() * 2),
-        cholesterol: Math.floor(Math.random() * 50) + 10,
-        sodium: Math.floor(Math.random() * 200) + 50,
-        fiber: Math.floor(Math.random() * 5) + 1,
-        sugar: Math.floor(Math.random() * 10) + 2,
-        vitaminD: Math.floor(Math.random() * 10) + 1,
-        calcium: Math.floor(Math.random() * 100) + 20,
-        iron: Math.floor(Math.random() * 5) + 1,
-        potassium: Math.floor(Math.random() * 300) + 100,
-      }
-    );
-  } catch (error) {
-    console.error(`Error fetching nutrition for ${ingredient}:`, error);
-    // Return mock data as fallback
-    return {
+  // Return stubbed data immediately without delay
+  return (
+    stubbedNutritionData[ingredient] || {
       calories: Math.floor(Math.random() * 200) + 100,
       protein: Math.floor(Math.random() * 20) + 5,
       carbs: Math.floor(Math.random() * 30) + 10,
@@ -261,6 +240,6 @@ export const fetchNutritionInfo = async (
       calcium: Math.floor(Math.random() * 100) + 20,
       iron: Math.floor(Math.random() * 5) + 1,
       potassium: Math.floor(Math.random() * 300) + 100,
-    };
-  }
+    }
+  );
 };

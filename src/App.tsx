@@ -6,13 +6,10 @@ import {
   Heading,
   Text,
   useColorModeValue,
-  Button,
-  Icon,
   useToast,
   ChakraProvider,
   extendTheme,
 } from '@chakra-ui/react';
-import { FaArrowDown } from 'react-icons/fa';
 import MacroInputForm from './components/MacroInputForm';
 import MealPlanDisplay from './components/MealPlanDisplay';
 import { generateMealPlan } from './services/ollama';
@@ -76,13 +73,6 @@ function App() {
     }
   };
 
-  const scrollToForm = () => {
-    const formElement = document.getElementById('meal-plan-form');
-    if (formElement) {
-      formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
   return (
     <ChakraProvider theme={theme}>
       <Box minH="100vh" bg={bgColor}>
@@ -95,19 +85,9 @@ function App() {
               <Text fontSize="xl" mb={8} color="gray.600">
                 Get personalized meal plans based on your macro targets and preferences
               </Text>
-              <Button
-                size="lg"
-                colorScheme="brand"
-                onClick={scrollToForm}
-                rightIcon={<Icon as={FaArrowDown} />}
-              >
-                Start Planning
-              </Button>
             </Box>
 
-            <Box id="meal-plan-form">
-              <MacroInputForm onSubmit={handleSubmit} isLoading={isLoading} />
-            </Box>
+            <MacroInputForm onSubmit={handleSubmit} isLoading={isLoading} />
 
             {error && (
               <Box p={4} bg="red.50" borderRadius="md" color="red.700">
