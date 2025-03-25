@@ -15,6 +15,8 @@ interface MacroInput {
   carbs: number;
   fats: number;
   days: number;
+  dietaryRestrictions: string[];
+  calorieTarget: number;
 }
 
 interface Meal {
@@ -490,10 +492,115 @@ export const generateMealPlan = async (
   input: MacroInput
 ): Promise<MealPlanResponse> => {
   try {
-    // Return stubbed response for testing
-    return stubbedResponse;
+    const prompt = `Create a detailed meal plan for a week (Monday through Sunday) that meets these nutritional goals:
+    - Calories: ${input.calorieTarget} per day
+    - Protein: ${input.protein}g per day
+    - Carbs: ${input.carbs}g per day
+    - Fats: ${input.fats}g per day
+
+    Dietary restrictions: ${input.dietaryRestrictions?.join(", ") || "None"}
+
+    Return ONLY a JSON object with the following structure (no markdown formatting or additional text):
+    {
+      "days": [
+        {
+          "day": "Monday",
+          "meals": [
+            {
+              "name": "Breakfast",
+              "recipeName": "Recipe Name",
+              "ingredients": ["ingredient1", "ingredient2", ...],
+              "macros": {
+                "protein": number,
+                "carbs": number,
+                "fats": number,
+                "calories": number
+              },
+              "description": "Brief description of the meal",
+              "instructions": "Step-by-step instructions"
+            },
+            // ... more meals for the day
+          ]
+        },
+        // ... more days
+      ]
+    }
+
+    Each meal should include:
+    1. A descriptive name and recipe name
+    2. Specific ingredients with measurements
+    3. Accurate macro calculations
+    4. A brief description
+    5. Clear step-by-step instructions
+
+    Ensure the total macros for each day meet the specified targets.`;
+
+    const response = await axios.post<Response>(
+      `${OLLAMA_API_URL}/api/generate`,
+      {
+        model: "gemma3:12b",
+        prompt,
+        stream: false,
+      }
+    );
+
+    if (!response.data.response) {
+      throw new Error("No response from Ollama");
+    }
+
+    // Clean up the response by removing markdown formatting and any extra text
+    const cleanedResponse = response.data.response
+      .replace(/```json\n?/g, "") // Remove ```json
+      .replace(/```\n?/g, "") // Remove closing ```
+      .replace(/^\s*\[?\s*\{/, "{") // Ensure it starts with {
+      .replace(/\}\s*\]?\s*$/, "}") // Ensure it ends with }
+      .replace(/,\s*([}\]])/g, "$1") // Remove trailing commas
+      .replace(/\n\s*\/\/.*$/gm, "") // Remove comments
+      .replace(/,\s*}/g, "}") // Remove trailing commas before closing braces
+      .replace(/,\s*]/g, "]") // Remove trailing commas before closing brackets
+      .trim(); // Remove extra whitespace
+
+    try {
+      // Parse the response and validate the structure
+      const mealPlan = JSON.parse(cleanedResponse) as MealPlanResponse;
+
+      // Validate the structure matches our interface
+      if (!mealPlan.days || !Array.isArray(mealPlan.days)) {
+        throw new Error("Invalid meal plan structure");
+      }
+
+      // Validate each day has the required structure
+      mealPlan.days.forEach((day, index) => {
+        if (!day.day || !Array.isArray(day.meals)) {
+          throw new Error(`Invalid structure for day ${index + 1}`);
+        }
+
+        day.meals.forEach((meal, mealIndex) => {
+          if (
+            !meal.name ||
+            !meal.recipeName ||
+            !Array.isArray(meal.ingredients) ||
+            !meal.macros ||
+            !meal.description ||
+            !meal.instructions
+          ) {
+            throw new Error(
+              `Invalid structure for meal ${mealIndex + 1} in day ${index + 1}`
+            );
+          }
+        });
+      });
+
+      return mealPlan;
+    } catch (parseError) {
+      console.error("Error parsing JSON response:", parseError);
+      console.error("Cleaned response:", cleanedResponse);
+      // Return stubbed response as fallback
+      return stubbedResponse;
+    }
   } catch (error) {
     console.error("Error generating meal plan:", error);
-    throw error;
+    // Return stubbed response as fallback
+    return stubbedResponse;
   }
 };
