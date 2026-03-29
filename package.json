@@ -8,7 +8,9 @@
     "server": "cd server && uvicorn main:app --reload --port 3001",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:server": "cd server && python3 -m pytest -v"
   },
   "dependencies": {
     "@chakra-ui/react": "^2.8.2",
@@ -32,6 +34,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "typescript": "^5.2.2",
-    "vite": "^5.0.8"
+    "vite": "^5.0.8",
+    "vitest": "^4.1.2"
   }
 }
