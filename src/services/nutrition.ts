@@ -1,9 +1,5 @@
 import axios from "axios";
 
-const NUTRITIONIX_API_URL = "https://trackapi.nutritionix.com/v2";
-const APP_ID = import.meta.env.VITE_NUTRITIONIX_APP_ID;
-const API_KEY = import.meta.env.VITE_NUTRITIONIX_API_KEY;
-
 interface NutritionInfo {
   calories: number;
   protein: number;
@@ -88,11 +84,10 @@ const stubbedNutritionData: { [key: string]: NutritionInfo } = {
   },
 };
 
-const nutritionixClient = axios.create({
-  baseURL: NUTRITIONIX_API_URL,
+// Calls the FastAPI proxy server (proxied by Vite in dev via /api -> localhost:3001)
+const apiClient = axios.create({
+  baseURL: "/api",
   headers: {
-    "x-app-id": APP_ID,
-    "x-app-key": API_KEY,
     "Content-Type": "application/json",
   },
 });
@@ -124,7 +119,7 @@ export const fetchNutritionInfo = async (
   if (cached) return cached;
 
   try {
-    const response = await nutritionixClient.post("/natural/nutrients", {
+    const response = await apiClient.post("/nutrition", {
       query: ingredient,
     });
 
